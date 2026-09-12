@@ -32,6 +32,14 @@ class GroundedSAM2(DetectionStageBase):
         self._gdino = GroundingDINO(**params)
         self._sam2 = SAM2(**params)
 
+    def setup(self, params: dict | None = None) -> None:
+        super().setup(params)
+        # The two helper stages are constructed before Pipeline applies config
+        # params, so forward the resolved local model/checkpoint paths as well.
+        resolved = params or {}
+        self._gdino.setup(resolved)
+        self._sam2.setup(resolved)
+
     def bind(self, ctx) -> None:
         super().bind(ctx)
         self._gdino.bind(ctx)

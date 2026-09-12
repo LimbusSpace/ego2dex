@@ -29,7 +29,11 @@ class LeRobotWriter(ExportStageBase):
 
     def write(self, clip: ClipAnnotation) -> Path:  # pragma: no cover - needs lerobot
         self.import_or_raise("lerobot")
-        from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
+        try:
+            # LeRobot 0.6 moved the dataset API out of ``common.datasets``.
+            from lerobot.datasets.lerobot_dataset import LeRobotDataset
+        except ModuleNotFoundError:  # pragma: no cover - legacy LeRobot only
+            from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 
         out = self.out_dir()
         repo_id = self.param("repo_id", f"ego2dex/{clip.video_meta.source}")
@@ -58,4 +62,9 @@ class LeRobotWriter(ExportStageBase):
             q = traj[i].astype(np.float32)
             dataset.add_frame({"action": q, "observation.state": q, "task": task})
         dataset.save_episode()
+        # LeRobot >= 0.6 writes final metadata and statistics here. Older
+        # releases did not expose ``finalize``.
+        finalize = getattr(dataset, "finalize", None)
+        if finalize is not None:
+            finalize()
         return out / "lerobot"

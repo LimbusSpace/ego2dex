@@ -51,7 +51,8 @@ class GroundingDINO(DetectionStageBase):
         results = self._processor.post_process_grounded_object_detection(
             outputs,
             inputs.input_ids,
-            box_threshold=float(self.param("box_threshold", 0.3)),
+            # Transformers calls the box score cutoff ``threshold``.
+            threshold=float(self.param("box_threshold", 0.3)),
             text_threshold=float(self.param("text_threshold", 0.25)),
             target_sizes=[(h, w)],
         )[0]

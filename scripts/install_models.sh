@@ -10,12 +10,12 @@
 #   bash scripts/install_models.sh hamer sam2 grounding_dino
 #   bash scripts/install_models.sh all
 #
-# Weights / datasets are written under ./_DATA (gitignored). NEVER commit them.
+# Weights / datasets are written outside this repository by default. NEVER commit them. Override the location with EGO2DEX_DATA_DIR when needed.
 # MANO is research-only + gated and is NOT downloaded here — see the note below.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-DATA_DIR="${EGO2DEX_DATA_DIR:-$(pwd)/_DATA}"
+DATA_DIR="${EGO2DEX_DATA_DIR:-${HOME}/models/ego2dex}"
 mkdir -p "$DATA_DIR"
 PIP="${PIP:-pip}"
 
