@@ -20,21 +20,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-===============================================================================
-THIRD-PARTY MODELS NOTICE
-===============================================================================
-The MIT license above covers ONLY the original ego2dex source code in this
-repository. ego2dex is a wrapper/pipeline: it orchestrates third-party models
-and libraries that it does NOT redistribute and that carry their OWN licenses,
-several of which are NON-COMMERCIAL, research-only, or copyleft (CC-BY-NC,
-GPL/AGPL, custom research licenses, API-only terms).
+Third-Party Components and Assets
+==================================
 
-You are responsible for reviewing and complying with the license of every
-model/dataset you enable. See docs/licenses.md for the per-component matrix.
+The MIT license above applies only to the original ego2dex source code
+identified by its copyright notices. This repository does not grant rights to
+third-party libraries, model implementations, model weights, datasets, MANO
+assets, robot descriptions, or generated data.
 
-CRITICAL: The MANO hand model (https://mano.is.tue.mpg.de) is licensed for
-NON-COMMERCIAL scientific research ONLY and is gated behind registration. Every
-MANO-based hand estimator (HaMeR, WiLoR, Hamba, WildHands, Dyn-HaMR, ...) and
-every MANO-parameterized dataset annotation inherits that restriction. ego2dex
-never vendors MANO weights; you must download MANO_RIGHT.pkl / MANO_LEFT.pkl
-yourself after accepting the MANO license.
+ego2dex is an orchestration pipeline and does not relicense the third-party
+components that users may install or invoke. Each component remains subject to
+its own license and terms. Several optional components or assets may be
+non-commercial, research-only, copyleft, gated, or subject to additional
+attribution requirements. Users are responsible for reviewing and complying
+with all applicable terms before use, redistribution, or commercial deployment.
+
+The MANO hand model is gated and licensed for non-commercial scientific
+research. ego2dex does not vendor MANO files. Users must obtain
+MANO_RIGHT.pkl and MANO_LEFT.pkl directly from the MANO website and comply
+with its license.
+
+Model weights and other downloaded assets are intentionally excluded from this
+repository. See docs/licenses.md, docs/install.md, and infra/README.md for the
+component matrix and external-infrastructure policy.
+
