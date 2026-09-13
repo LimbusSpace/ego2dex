@@ -11,4 +11,5 @@ params:
   num_hands: 2
   device: cuda
   repo_dir: null       # /path/to/EgoForce, or set EGO2DEX_EGOFORCE_DIR
+  lens_mode: fisheye624  # fisheye624 | pinhole | pinhole_distortion
   checkpoint: null     # optional override of EgoForce _DATA checkpoint

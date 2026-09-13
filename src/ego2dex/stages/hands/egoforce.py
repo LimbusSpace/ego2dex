@@ -127,7 +127,7 @@ class EgoForce(HandStageBase):
     def load(self) -> None:  # pragma: no cover - needs GPU + EgoForce repo
         torch = self.import_or_raise("torch")
         self._torch = torch
-        self.device = self.param("device", self.ctx.device)
+        self._infer_device = self.param("device", self.ctx.device)
 
         repo = self.param("repo_dir") or self._discover_repo()
         if not repo:
@@ -141,8 +141,16 @@ class EgoForce(HandStageBase):
         repo_path = Path(repo)
         import sys
 
-        if str(repo_path) not in sys.path:
-            sys.path.insert(0, str(repo_path))
+        # Official demo/inference.py does sibling imports
+        # (`from demo_hand_arm_loader import ...`), so both the repo root
+        # and demo/ must be on sys.path. Keep the repo root first so
+        # `from demo.inference import Inference` still resolves.
+        root = str(repo_path)
+        demo = str(repo_path / "demo")
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        if demo not in sys.path:
+            sys.path.insert(1, demo)
 
         try:
             from demo.inference import Inference  # type: ignore
@@ -169,9 +177,21 @@ class EgoForce(HandStageBase):
         env = os.environ.get("EGO2DEX_EGOFORCE_DIR")
         if env and Path(env).is_dir():
             return env
-        sibling = Path.cwd() / "EgoForce"
-        if (sibling / "demo" / "inference.py").is_file():
-            return str(sibling)
+        candidates: list[Path] = [Path.cwd() / "EgoForce"]
+        # ego2dex checkout lives at .../src/ego2dex; official clone is the sibling
+        # .../src/EgoForce when both sit under the same parent.
+        here = Path(__file__).resolve()
+        ego2dex_root = here.parents[4]  # .../src/ego2dex
+        candidates.append(ego2dex_root.parent / "EgoForce")
+        candidates.append(Path.home() / "src" / "EgoForce")
+        seen: set[str] = set()
+        for cand in candidates:
+            key = str(cand)
+            if key in seen:
+                continue
+            seen.add(key)
+            if (cand / "demo" / "inference.py").is_file():
+                return str(cand)
         return None
 
     def infer_limb(
@@ -184,15 +204,88 @@ class EgoForce(HandStageBase):
         engine = getattr(self, "_engine", None)
         if engine is None:
             raise RuntimeError("EgoForce.load() did not create Inference()")
+        self._ensure_camera(engine, rgb)
 
         if hasattr(engine, "run_outputs"):
-            outs = engine.run_outputs(rgb, getattr(self, "device", self.ctx.device))
+            outs = engine.run_outputs(rgb, getattr(self, "_infer_device", self.ctx.device))
         else:
             raise NotImplementedError(
                 "EgoForce demo.inference.Inference is missing run_outputs(); "
                 "pin a current dfki-av/EgoForce checkout."
             )
         return self.poses_from_outputs(outs)
+
+    def _ensure_camera(self, engine, rgb: np.ndarray) -> None:
+        """Official ``run_outputs`` requires ``set_camera_model`` first."""
+        if getattr(engine, "camera_model", None) is not None:
+            return
+        lens_mode = str(self.param("lens_mode", "fisheye624"))
+        camera = self._calibrate_camera(rgb, lens_mode)
+        engine.set_camera_model(camera)
+
+    def _calibrate_camera(self, rgb: np.ndarray, lens_mode: str):
+        """AnyCalib first-frame intrinsics, same mapping as EgoForce ``demo/run_app.py``."""
+        import torch
+        from anycalib import AnyCalib
+        from camera_models import OVR624CameraModel, PinholeCameraModel, Rational8CameraModel
+
+        specs = {
+            "fisheye624": {"model_id": "anycalib_gen", "cam_id": "simple_kb:4"},
+            "pinhole_distortion": {"model_id": "anycalib_dist", "cam_id": "radial:4"},
+            "pinhole": {"model_id": "anycalib_pinhole", "cam_id": "pinhole"},
+        }
+        spec = specs.get(lens_mode)
+        if spec is None:
+            raise ValueError(f"Unknown EgoForce lens_mode={lens_mode!r}")
+
+        height, width = rgb.shape[:2]
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        image = torch.tensor(rgb, dtype=torch.float32, device=device).permute(2, 0, 1) / 255.0
+        anycalib_model = None
+        try:
+            anycalib_model = AnyCalib(model_id=spec["model_id"]).to(device)
+            with torch.no_grad():
+                prediction = anycalib_model.predict(image, cam_id=spec["cam_id"])
+            intrinsics = prediction["intrinsics"]
+            if torch.is_tensor(intrinsics):
+                intrinsics = intrinsics.detach().cpu().numpy()
+            intrinsics = np.asarray(intrinsics, dtype=np.float32).reshape(-1)
+        finally:
+            del image
+            if anycalib_model is not None:
+                del anycalib_model
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        if lens_mode == "pinhole":
+            if intrinsics.size >= 4:
+                focal, principal = intrinsics[:2], intrinsics[2:4]
+            else:
+                focal = np.array([intrinsics[0], intrinsics[0]], dtype=np.float32)
+                principal = intrinsics[1:3]
+            return PinholeCameraModel(focal, principal, width, height)
+
+        if lens_mode == "pinhole_distortion":
+            if intrinsics.size >= 8:
+                focal, principal, radial = intrinsics[:2], intrinsics[2:4], intrinsics[4:8]
+            else:
+                focal = np.array([intrinsics[0], intrinsics[0]], dtype=np.float32)
+                principal, radial = intrinsics[1:3], intrinsics[3:7]
+            distortion = np.zeros(8, dtype=np.float32)
+            distortion[0] = radial[0]
+            distortion[1] = radial[1]
+            distortion[4] = radial[2]
+            distortion[5] = radial[3]
+            return Rational8CameraModel(focal, principal, distortion, width, height)
+
+        if intrinsics.size >= 8:
+            focal, principal, kb = intrinsics[:2], intrinsics[2:4], intrinsics[4:8]
+        else:
+            focal = np.array([intrinsics[0], intrinsics[0]], dtype=np.float32)
+            principal, kb = intrinsics[1:3], intrinsics[3:7]
+        distortion = np.zeros(12, dtype=np.float32)
+        distortion[:4] = kb
+        return OVR624CameraModel(focal, principal, distortion, width, height)
 
     @staticmethod
     def poses_from_outputs(
