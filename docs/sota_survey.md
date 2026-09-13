@@ -25,11 +25,12 @@ output stays compatible with that ecosystem.
   FisheyeRadTanThinPrism** (15 params, single focal). GoPro is wide-FOV → expose
   an undistortion path. Implemented in `ego2dex/io/camera.py`.
 
-## B. Hand pose — 3D finger joints + MANO  *(default: HaMeR)*
+## B. Hand pose — 3D finger joints + MANO  *(default: EgoForce)*
 
 | Model | Venue / arXiv | License | Why |
 |---|---|---|---|
-| **HaMeR** ⭐ | CVPR 2024 · [2312.05251](https://arxiv.org/abs/2312.05251) · [code](https://github.com/geopavlakos/hamer) | MIT + MANO | ViT-H per-hand-crop → MANO (48 pose + 10 shape) + 778-vtx mesh + 21 joints. Egocentric-proven (EgoExo4D Ego-Pose Hands 2nd; tested on EPIC-KITCHENS/Ego4D). ~27 FPS batch, GPU. Bundles ViTPose detection. Weights via `fetch_demo_data.sh`. |
+| **EgoForce** ⭐ | SIGGRAPH 2026 · [code](https://github.com/dfki-av/EgoForce) | CC-BY-NC 4.0 + MANO | Unified egocentric **hand + forearm**. Transformer emits 21 hand kpts + MANO + 3-joint forearm (elbow, mid, wrist). GPU. Default `hands/egoforce` writes both `hands` and `arms` (ARM4 elbow/wrist observed; shoulder/hip unobserved pending IK). |
+| **HaMeR** | CVPR 2024 · [2312.05251](https://arxiv.org/abs/2312.05251) · [code](https://github.com/geopavlakos/hamer) | MIT + MANO | ViT-H per-hand-crop → MANO (48 pose + 10 shape) + 778-vtx mesh + 21 joints. Egocentric-proven (EgoExo4D Ego-Pose Hands 2nd; tested on EPIC-KITCHENS/Ego4D). Hand-only fallback (`hands/hamer`). |
 | **WiLoR** | [2409.12259](https://arxiv.org/abs/2409.12259) · [code](https://github.com/rolpotamias/WiLoR) | CC-BY-NC-ND + AGPL + MANO | End-to-end detect+reconstruct, multi-hand, >130 FPS detector / ~156 FPS refiner. Weights on HF; community [`WiLoR-mini`](https://github.com/warmshao/WiLoR-mini). |
 | **MediaPipe Hands / Hand Landmarker** | [docs](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | 21 landmarks (`hand_landmarks` normalized 2.5D + `hand_world_landmarks` metric + handedness). Real-time CPU, **no MANO**. The dependency-free default / smoke path. |
 | **Hamba** | NeurIPS 2024 · [2407.09646](https://arxiv.org/abs/2407.09646) · [code](https://github.com/humansensinglab/Hamba) | CC-BY-NC 4.0 + MANO | ViT-H + graph Mamba; best FreiHAND accuracy; needs Mamba SSM kernels. |
@@ -46,20 +47,23 @@ has an egocentric mode + the 100DOH detector).
 (1€) filter** for real-time (bundled, pure-python). Both exposed as the
 `hands/smoothing` sub-stage.
 
-## B2. Arm / upper-limb joints  *(default: MediaPipe Pose)*
+## B2. Arm / upper-limb joints  *(default: EgoForce forearm, via `hands/egoforce`)*
 
-Hand estimators stop at the wrist. Dexterous retargeting and egocentric reach
-also need the proximal chain (shoulder → elbow → wrist, plus hip as a torso
-anchor). ego2dex stores this as per-side **ARM4** and keeps the full-body
-estimate when the backend produces one.
+Most hand estimators stop at the wrist. Dexterous retargeting and egocentric
+reach also need the visible proximal chain. ego2dex stores this as per-side
+**ARM4**. The default path does **not** run a second full-body pose model:
+EgoForce already emits the visible forearm (elbow–wrist). Shoulder and hip
+are typically out of a first-person frame and stay unobserved until an IK /
+headset-calib fill-in. `arms/mediapipe_pose` remains an optional CPU backend.
 
 | Model | Venue / arXiv | License | Why |
 |---|---|---|---|
-| **MediaPipe Pose / BlazePose** ⭐ | [docs](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | 33 body landmarks (`pose_landmarks` image + `pose_world_landmarks` metric). CPU, no SMPL. Sliced to ARM4 via `arm4_from_pose`. The dependency-free default / smoke path (`arms/mediapipe_pose`). |
+| **EgoForce forearm** ⭐ | SIGGRAPH 2026 · [code](https://github.com/dfki-av/EgoForce) | CC-BY-NC 4.0 + MANO | 3-joint ArM chain (elbow=0, mid=1, wrist=2) mapped to ARM4 via `arm4_from_forearm3`. Written by `hands/egoforce`, not a separate arms stage. |
+| **MediaPipe Pose / BlazePose** | [docs](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | 33 body landmarks. CPU, no SMPL. Optional `arms/mediapipe_pose` when you want observed shoulder/hip from a body landmarker. |
 | YOLO-Pose / RTMPose (optional) | — | check weights | COCO-17 body; slice with `ArmConvention.COCO17`. Not registered yet. |
 
-ARM4 index 2 is the same anatomical wrist as hand keypoint 0, so a later stage
-can stitch a recovered hand onto the arm.
+ARM4 index 2 is the same anatomical wrist as hand keypoint 0, so a recovered
+hand stitches onto the arm without a second wrist estimate.
 
 ## C. Open-vocabulary detection — boxes  *(default: Grounding DINO)*
 

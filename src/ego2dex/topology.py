@@ -294,13 +294,16 @@ class ArmConvention(str, Enum):
 
     ``ARM4`` is the per-side chain ego2dex stores on :class:`ArmPose`
     (shoulder, elbow, wrist, hip). ``MEDIAPIPE_POSE`` is BlazePose's 33-point
-    body; ``COCO17`` is the COCO body set. Use :func:`arm4_from_pose` to slice
-    a full-body estimate down to ARM4 -- never pick indices by hand.
+    body; ``COCO17`` is the COCO body set; ``EGOFORCE_FOREARM3`` is EgoForce's
+    3-joint forearm (elbow, mid, wrist). Use :func:`arm4_from_pose` /
+    :func:`arm4_from_forearm3` to slice down to ARM4 -- never pick indices by
+    hand.
     """
 
     ARM4 = "arm4"
     MEDIAPIPE_POSE = "mediapipe_pose"
     COCO17 = "coco17"
+    EGOFORCE_FOREARM3 = "egoforce_forearm3"
 
 
 NUM_ARM_KEYPOINTS: int = 4
@@ -396,6 +399,49 @@ COCO17_TO_ARM4_LEFT: tuple[int, ...] = (5, 7, 9, 11)
 COCO17_TO_ARM4_RIGHT: tuple[int, ...] = (6, 8, 10, 12)
 
 
+# EgoForce ArM / LimbModel forearm: 3 joints. limb_model.py:
+#   "Wrist is #2nd joint"; bone vector wrist→elbow is joints[:, 0] - joints[:, 2]
+#   "0 is elbow/root". Mid (index 1) is the forearm midpoint, not stored in ARM4.
+NUM_FOREARM3_KEYPOINTS: int = 3
+EGOFORCE_FOREARM3_NAMES: tuple[str, ...] = (
+    "ELBOW",  # 0 root
+    "MID",  # 1
+    "WRIST",  # 2
+)
+EGOFORCE_FOREARM3_ELBOW: int = 0
+EGOFORCE_FOREARM3_MID: int = 1
+EGOFORCE_FOREARM3_WRIST: int = 2
+
+# ARM4 dest <- forearm3 src. None = unobserved (shoulder / hip are out of view).
+FOREARM3_TO_ARM4: tuple[int | None, ...] = (
+    None,  # SHOULDER
+    EGOFORCE_FOREARM3_ELBOW,  # ELBOW
+    EGOFORCE_FOREARM3_WRIST,  # WRIST
+    None,  # HIP
+)
+
+
+def arm4_from_forearm3(keypoints: NDArray[np.floating]) -> NDArray[np.floating]:
+    """Lift EgoForce's 3-joint forearm (elbow, mid, wrist) to ARM4.
+
+    ``keypoints`` is ``(3, D)``. Returns ``(4, D)`` in ARM4 order. Shoulder and
+    hip are **not observed** by EgoForce (egocentric camera rarely sees them);
+    those rows are zeros. Mid-forearm is dropped. A later IK / headset-calib
+    stage can fill the proximal joints; until then consumers should treat
+    ARM4 index 0 and 3 as unobserved (2D conf == 0 when the caller adds a
+    confidence channel).
+    """
+    kpts = np.asarray(keypoints, dtype=np.float64)
+    if kpts.ndim != 2 or kpts.shape[0] != NUM_FOREARM3_KEYPOINTS:
+        raise ValueError(
+            f"EgoForce forearm3 expects ({NUM_FOREARM3_KEYPOINTS}, D), got {kpts.shape}"
+        )
+    out = np.zeros((NUM_ARM_KEYPOINTS, kpts.shape[1]), dtype=np.float64)
+    out[ARM4_ELBOW] = kpts[EGOFORCE_FOREARM3_ELBOW]
+    out[ARM4_WRIST] = kpts[EGOFORCE_FOREARM3_WRIST]
+    return out
+
+
 def arm4_from_pose(
     keypoints: NDArray[np.floating],
     src: ArmConvention | str,
@@ -427,4 +473,7 @@ def arm4_from_pose(
             raise ValueError(f"COCO-17 expects {NUM_COCO17_KEYPOINTS} points, got {kpts.shape}")
         idx = COCO17_TO_ARM4_LEFT if side_key == "left" else COCO17_TO_ARM4_RIGHT
         return kpts[list(idx)]
+    if src == ArmConvention.EGOFORCE_FOREARM3:
+        # side is unused: EgoForce emits one forearm chain per detected hand.
+        return arm4_from_forearm3(kpts)
     raise ValueError(f"No ARM4 slice defined for {src.value}")

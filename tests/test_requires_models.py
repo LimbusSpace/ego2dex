@@ -47,6 +47,14 @@ def test_mediapipe_pose_live_infer(synthetic_dir):
 
 
 @pytest.mark.skipif(not _have("torch"), reason="torch not installed")
+def test_egoforce_loads_with_repo():
+    """EgoForce live load needs torch + cloned dfki-av/EgoForce + weights."""
+    stage = build_stage("hands", "egoforce", {})
+    stage.bind(RunContext(dry_run=False, device="cpu"))
+    stage.ensure_loaded()  # ImportError unless repo_dir / EGO2DEX_EGOFORCE_DIR is set
+
+
+@pytest.mark.skipif(not _have("torch"), reason="torch not installed")
 def test_hamer_loads_with_weights():
     """HaMeR should load when torch + the hamer package + checkpoint are present."""
     stage = build_stage("hands", "hamer", {})

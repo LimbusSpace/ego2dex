@@ -23,9 +23,8 @@ def _full_cfg(out: Path):
                 {"family": "pose", "name": "colmap", "params": {}},
                 {"family": "detection", "name": "grounding_dino", "params": {}},
                 {"family": "segmentation", "name": "sam2", "params": {}},
-                {"family": "hands", "name": "mediapipe", "params": {}},
+                {"family": "hands", "name": "egoforce", "params": {}},
                 {"family": "hands", "name": "smoothing", "params": {}},
-                {"family": "arms", "name": "mediapipe_pose", "params": {}},
                 {"family": "hoi", "name": "hand_object_detector", "params": {}},
                 {"family": "caption", "name": "qwen2_5_vl", "params": {}},
                 {
@@ -51,7 +50,8 @@ def test_smoke_pipeline_runs(synthetic_dir, tmp_path):
     clip = pipe.run(synthetic_dir, output_dir=tmp_path)
     assert len(clip.frames) == 8
     assert all(len(f.hands) == 2 for f in clip.frames)
-    assert all(len(f.arms) == 2 for f in clip.frames)
+    # smoke is MediaPipe Hands only; EgoForce (hands+forearm) is the GPU default.
+    assert all(len(f.arms) == 0 for f in clip.frames)
     assert (tmp_path / "clip_full.json").exists()
     validate_clip_json((tmp_path / "clip_full.json").read_text())
 

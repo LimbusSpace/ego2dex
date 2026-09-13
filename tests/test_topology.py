@@ -14,6 +14,7 @@ from ego2dex.topology import (
     MANO_POSE_DIM,
     MANOPTH_TO_STANDARD21,
     NUM_ARM_KEYPOINTS,
+    NUM_FOREARM3_KEYPOINTS,
     NUM_HAND_KEYPOINTS,
     NUM_POSE33_KEYPOINTS,
     POSE33_TO_ARM4_LEFT,
@@ -23,6 +24,7 @@ from ego2dex.topology import (
     ArmConvention,
     HandConvention,
     apply_remap,
+    arm4_from_forearm3,
     arm4_from_pose,
     remap_keypoints,
     split_full_pose,
@@ -127,3 +129,21 @@ def test_arm4_passthrough_and_bad_side():
     assert np.array_equal(arm4_from_pose(arm, ArmConvention.ARM4, "left"), arm)
     with pytest.raises(ValueError):
         arm4_from_pose(arm, ArmConvention.ARM4, "unknown")
+
+
+def test_arm4_from_egoforce_forearm3():
+    forearm = (
+        np.arange(NUM_FOREARM3_KEYPOINTS * 3).reshape(NUM_FOREARM3_KEYPOINTS, 3).astype(np.float64)
+    )
+    arm = arm4_from_forearm3(forearm)
+    assert arm.shape == (4, 3)
+    # unobserved shoulder / hip
+    assert np.array_equal(arm[0], np.zeros(3))
+    assert np.array_equal(arm[3], np.zeros(3))
+    # elbow = forearm 0, wrist = forearm 2; mid (index 1) is dropped
+    assert np.array_equal(arm[1], forearm[0])
+    assert np.array_equal(arm[2], forearm[2])
+    via = arm4_from_pose(forearm, ArmConvention.EGOFORCE_FOREARM3, "left")
+    assert np.array_equal(via, arm)
+    with pytest.raises(ValueError):
+        arm4_from_forearm3(np.zeros((4, 3)))

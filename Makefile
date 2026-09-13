@@ -45,7 +45,7 @@ test-all: ## Run the full test suite (needs weights/GPU)
 	pytest
 
 .PHONY: smoke
-smoke: ## Run the CPU mediapipe smoke pipeline on the synthetic clip
+smoke: ## Run the CPU MediaPipe Hands smoke pipeline on the synthetic clip
 	ego2dex run --config configs/pipeline/smoke.yaml --input assets/synthetic --output outputs/smoke
 
 .PHONY: validate

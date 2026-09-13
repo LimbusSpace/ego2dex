@@ -17,9 +17,9 @@ flowchart TD
         TAGS["tags<br/>RAM++"] --> DET
         DET["detection<br/>Grounding DINO · YOLO-World · Detic"] --> SEG
         SEG["segmentation+tracking<br/>SAM2 · Grounded-SAM-2 · DEVA · SAMURAI"] --> HANDS
-        HANDS["hands<br/>HaMeR ⭐ · WiLoR · MediaPipe · Dyn-HaMR · WildHands"] --> SMOOTH
-        SMOOTH["smoothing<br/>1€ · SmoothNet"] --> ARMS
-        ARMS["arms<br/>MediaPipe Pose ⭐ (ARM4: shoulder-elbow-wrist-hip)"] --> HOI
+        HANDS["hands + forearm<br/>EgoForce ⭐ · HaMeR · WiLoR · MediaPipe · Dyn-HaMR"] --> SMOOTH
+        SMOOTH["smoothing<br/>1€ · SmoothNet"] --> HOI
+        ARMS["arms (optional)<br/>MediaPipe Pose ARM4"] -.-> HOI
         HOI["hand-object<br/>100DOH · EgoHOS"] --> CAP
         CAP["captions/points<br/>Qwen2.5-VL · Florence-2 · Molmo"] --> RET
         RET["retargeting<br/>dex-retargeting → ORCA / Allegro / Shadow / LEAP"]

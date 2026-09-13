@@ -1,0 +1,14 @@
+# EgoForce (SIGGRAPH 2026). Unified first-person HAND + FOREARM.
+# Writes FrameAnnotation.hands (21 kpt + MANO) AND FrameAnnotation.arms
+# (ARM4 with observed elbow/wrist; shoulder/hip unobserved).
+# License: CC-BY-NC 4.0 + MANO. GPU. NOT the CPU smoke path.
+# Install: bash scripts/install_models.sh egoforce
+#   (clone dfki-av/EgoForce, conda env, scripts/install.sh + download weights)
+family: hands
+name: egoforce
+enabled: true
+params:
+  num_hands: 2
+  device: cuda
+  repo_dir: null       # /path/to/EgoForce, or set EGO2DEX_EGOFORCE_DIR
+  checkpoint: null     # optional override of EgoForce _DATA checkpoint

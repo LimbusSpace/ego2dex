@@ -6,7 +6,7 @@ Stages are selected **by name** from per-family **registries** and configured by
 **OmegaConf YAML**. Everything is optional/toggleable.
 
 ```text
-ingest → (camera/SLAM) → hands → arms → detection → segmentation/tracking
+ingest → (camera/SLAM) → hands (+forearm via EgoForce) → detection → segmentation/tracking
        → hand-object-interaction → tags → captions
        → annotation store → retargeting → export → viz
 ```

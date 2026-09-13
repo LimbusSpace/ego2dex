@@ -25,11 +25,9 @@ stages:
   # --- tags / detection / segmentation ---
   - include: configs/caption/ram_plus.yaml
   - include: configs/detection/grounded_sam2.yaml
-  # --- 3D hands + smoothing ---
-  - include: configs/hands/hamer.yaml
+  # --- 3D hands + visible forearm (EgoForce); no second body model ---
+  - include: configs/hands/egoforce.yaml
   - { family: hands, name: smoothing, params: { method: oneeuro } }
-  # --- arm joints (shoulder-elbow-wrist-hip) ---
-  - include: configs/arms/mediapipe_pose.yaml
   # --- interaction + captions ---
   - include: configs/hoi/egohos.yaml
   - include: configs/caption/qwen2_5_vl.yaml

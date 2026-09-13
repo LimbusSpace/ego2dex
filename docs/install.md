@@ -35,8 +35,9 @@ Install only what a stage needs (each pulls torch / heavy deps):
 
 | Extra | Enables | Notes |
 |---|---|---|
-| `mediapipe` | MediaPipe Hands + Pose/arms (CPU, no MANO) | + download `hand_landmarker.task` and `pose_landmarker_lite.task` |
-| `hamer` | HaMeR | + clone repo + `fetch_demo_data.sh` + **MANO** |
+| `mediapipe` | MediaPipe Hands (CPU smoke) + optional Pose/arms | + download `hand_landmarker.task`; Pose `.task` only if you opt into `arms/mediapipe_pose` |
+| `egoforce` | EgoForce unified hand+forearm (GPU, **default**) | + clone [dfki-av/EgoForce](https://github.com/dfki-av/EgoForce) + its `install.sh` + weights + **MANO**. CC-BY-NC. |
+| `hamer` | HaMeR (hand-only fallback) | + clone repo + `fetch_demo_data.sh` + **MANO** |
 | `wilor` | WiLoR | `pip install git+https://github.com/warmshao/WiLoR-mini` |
 | `detection` | Grounding DINO / YOLO-World / Detic / transformers | |
 | `sam2` | SAM 2 | `pip install git+https://github.com/facebookresearch/sam2` + ckpts |
@@ -94,6 +95,6 @@ against your URDF (see [`retargeting.md`](retargeting.md)).
 - **No weights**: package import; the whole pipeline graph in `dry_run`; the
   smoke pipeline; the full test suite (`-m "not requires_models"`); JSON/COCO
   export; camera math; topology; retarget **dry-run**.
-- **Needs weights/extras**: any live model stage (HaMeR, SAM2, GDINO, Qwen, …),
-  real MediaPipe inference (hand + pose bundles), live `dex-retargeting` (URDF), HDF5
+- **Needs weights/extras**: any live model stage (EgoForce, HaMeR, SAM2, GDINO, Qwen, …),
+  real MediaPipe inference (hand, and pose if you opt in), live `dex-retargeting` (URDF), HDF5
   export (h5py), LeRobot export (lerobot).

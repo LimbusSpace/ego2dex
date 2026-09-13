@@ -28,10 +28,11 @@ yourself after accepting the license, and point stages at them via
 
 | Component | Role | License | Commercial? | Source |
 |---|---|---|---|---|
-| **HaMeR** | primary hand model | 🟢 MIT (code) + 🔴 MANO | ❌ via MANO | <https://github.com/geopavlakos/hamer> |
+| **EgoForce** | primary egocentric hand+forearm | 🔴 CC-BY-NC 4.0 + 🔴 MANO | ❌ | <https://github.com/dfki-av/EgoForce> |
+| **HaMeR** | hand-only fallback | 🟢 MIT (code) + 🔴 MANO | ❌ via MANO | <https://github.com/geopavlakos/hamer> |
 | **WiLoR** | real-time multi-hand | 🔴 CC-BY-NC-ND (models) + 🔴 AGPL (detector) + 🔴 MANO | ❌ | <https://github.com/rolpotamias/WiLoR> |
-| **MediaPipe Hands** | light CPU, no MANO | 🟢 Apache-2.0 | ✅ | <https://github.com/google-ai-edge/mediapipe> |
-| **MediaPipe Pose** | light CPU, ARM4 from BlazePose 33 | 🟢 Apache-2.0 | ✅ | <https://github.com/google-ai-edge/mediapipe> |
+| **MediaPipe Hands** | light CPU, no MANO (smoke) | 🟢 Apache-2.0 | ✅ | <https://github.com/google-ai-edge/mediapipe> |
+| **MediaPipe Pose** | optional CPU ARM4 from BlazePose 33 | 🟢 Apache-2.0 | ✅ | <https://github.com/google-ai-edge/mediapipe> |
 | **Hamba** | best FreiHAND | 🔴 CC-BY-NC 4.0 + 🔴 MANO | ❌ | <https://github.com/humansensinglab/Hamba> |
 | **WildHands** | egocentric single-image | 🔴 CC-BY-NC + 🔴 MANO | ❌ | <https://github.com/ap229997/hands> |
 | **Dyn-HaMR** | temporal world-frame | 🟢 MIT (code) + 🔴 MANO | ❌ via MANO | <https://github.com/ZhengdiYu/Dyn-HaMR> |
@@ -100,7 +101,7 @@ yourself after accepting the license, and point stages at them via
 
 ## A "fully permissive, commercial-OK" subset
 
-If you need a commercially-usable stack, prefer: **MediaPipe** (hands + pose/arms, no MANO) +
+If you need a commercially-usable stack, prefer: **MediaPipe** (hands, optional pose/arms, no MANO; **not** EgoForce) +
 **Grounding DINO** + **SAM 2 / Grounded-SAM-2** + **EgoHOS** + **RAM++ /
 Qwen2.5-VL / Florence-2 / Molmo** + **COLMAP** + **dex-retargeting** + the JSON /
 COCO / HDF5 / LeRobot writers. Note this path yields **no MANO parameters** (only

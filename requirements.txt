@@ -5,6 +5,7 @@
 # dry-run mode. Heavy models are optional extras -- install per stage, e.g.:
 #
 #     pip install ".[mediapipe]"            # CPU smoke path (21 kpts, no MANO)
+#     pip install ".[egoforce]"             # EgoForce extra (torch); clone dfki-av/EgoForce for live
 #     pip install ".[hamer]"                # HaMeR (GPU, MANO, needs weights)
 #     pip install ".[detection,sam2]"       # Grounded-SAM-2 chain
 #     pip install ".[retarget,export]"      # dex-retargeting + HDF5/LeRobot

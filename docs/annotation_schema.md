@@ -26,7 +26,7 @@ a superset of the dataset survey ([`datasets.md`](datasets.md)).
 | `side` | `left`/`right`/`unknown` | person-centric |
 | `keypoints_2d` | `4 × [x, y, conf]` | pixels, ARM4 = shoulder, elbow, wrist, hip |
 | `keypoints_3d` | `4 × [x, y, z]` (opt) | camera / world-landmark frame, meters |
-| `keypoint_convention` | enum | `arm4` (stored); sources `mediapipe_pose` / `coco17` are sliced via `arm4_from_pose` |
+| `keypoint_convention` | enum | `arm4` (stored); sources `mediapipe_pose` / `coco17` / `egoforce_forearm3` are sliced via `arm4_from_pose` |
 | `pose33` | `33 × [x, y, conf]` (opt) | full MediaPipe BlazePose body, when available |
 | `coco17` | `17 × [x, y, conf]` (opt) | full COCO-17 body, when available |
 | `score` | float | mean ARM4 confidence |
@@ -105,6 +105,7 @@ validate_clip_json(open("clip_full.json").read()) # raises on invalid
 base→tip), MANO constants (778 verts, 16 joints, 45/48 pose, 10 betas), MANO's
 native finger order (index, middle, **pinky, ring**, thumb), tip vertex ids
 (manopth `[745,317,444,556,673]`), the manopth↔standard-21 remap, and the ARM4
-arm chain (shoulder, elbow, wrist, hip) plus MediaPipe Pose33 / COCO-17 slices.
-Use `remap_keypoints(src, dst)` / `apply_remap(...)` for hands and
+arm chain (shoulder, elbow, wrist, hip) plus MediaPipe Pose33 / COCO-17 slices
+and EgoForce's 3-joint forearm (`arm4_from_forearm3`). Use
+`remap_keypoints(src, dst)` / `apply_remap(...)` for hands and
 `arm4_from_pose(kpts, src, side)` for arms — never reorder joints by hand.

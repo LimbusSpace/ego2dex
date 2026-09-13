@@ -58,6 +58,9 @@ wilor = ["torch>=2.0", "torchvision", "ultralytics", "smplx>=0.1.28", "huggingfa
 mediapipe = ["mediapipe>=0.10"]  # CPU, no MANO, no torch -> the smoke path
 dynhamr = ["torch>=2.0", "torchvision", "smplx>=0.1.28"]
 wildhands = ["torch>=2.0", "torchvision", "smplx>=0.1.28"]
+# EgoForce (dfki-av/EgoForce) is NOT on PyPI. Extra only pulls torch;
+# clone the repo and run its scripts/install.sh + download_model_weights.sh.
+egoforce = ["torch>=2.0", "torchvision", "smplx>=0.1.28"]
 smoothing = ["scipy>=1.10"]  # SmoothNet (torch) optional; 1euro is pure-python
 
 # --- Open-vocab detection / segmentation / tracking ------------------------
@@ -101,7 +104,7 @@ dev = [
 
 # Convenience meta-extra: the full GPU stack (NOT installed in CI).
 all = [
-    "ego2dex[hamer,wilor,mediapipe,dynhamr,wildhands,smoothing,detection,sam2,deva,samurai,hoi,caption,pose,aria,retarget,export,viz]",
+    "ego2dex[hamer,wilor,mediapipe,dynhamr,wildhands,egoforce,smoothing,detection,sam2,deva,samurai,hoi,caption,pose,aria,retarget,export,viz]",
 ]
 
 [project.scripts]

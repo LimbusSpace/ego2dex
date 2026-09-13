@@ -49,6 +49,17 @@ install_hamer() {
   mano_note
 }
 
+install_egoforce() {
+  log "EgoForce (CC-BY-NC 4.0 + MANO). Unified egocentric hand + forearm."
+  warn "NOT for commercial use. Official install wants conda env 'egoforce' (Python 3.10, CUDA 12.6)."
+  [ -d EgoForce ] || git clone --recursive https://github.com/dfki-av/EgoForce.git
+  warn "Then, in a GPU box:"
+  warn "  cd EgoForce && bash scripts/install.sh && bash scripts/download_model_weights.sh"
+  warn "Point the stage at the clone: params.repo_dir=... or EGO2DEX_EGOFORCE_DIR."
+  warn "Weights live under EgoForce/_DATA/ (and/or $DATA_DIR/egoforce). NEVER commit them."
+  mano_note
+}
+
 install_wilor() {
   log "WiLoR (CC-BY-NC-ND models + AGPL detector + MANO) via WiLoR-mini"
   $PIP install "git+https://github.com/warmshao/WiLoR-mini"
@@ -101,7 +112,7 @@ install_aria()     { log "Project Aria tools"; $PIP install "projectaria-tools>=
 install_retarget() { log "dex-retargeting (MIT)"; $PIP install "dex_retargeting>=0.4.0"; warn "ORCA needs YOUR urdf"; }
 install_export()   { log "HDF5/parquet writers"; $PIP install "h5py>=3.8" "pyarrow>=14.0"; }
 
-ALL=(mediapipe hamer wilor dynhamr grounding_dino sam2 yolo_world detic deva samurai
+ALL=(mediapipe hamer wilor egoforce dynhamr grounding_dino sam2 yolo_world detic deva samurai
      hoi caption pose aria retarget export)
 
 usage() {
