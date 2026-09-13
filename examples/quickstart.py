@@ -35,6 +35,12 @@ def main() -> None:
             f"  hand[{hand.side}] wrist=({kp[0, 0]:.1f},{kp[0, 1]:.1f}) "
             f"conv={hand.keypoint_convention} mano={'yes' if hand.mano else 'no'}"
         )
+    for arm in f0.arms:
+        kp = arm.kp2d_array()
+        print(
+            f"  arm[{arm.side}] shoulder=({kp[0, 0]:.1f},{kp[0, 1]:.1f}) "
+            f"elbow=({kp[1, 0]:.1f},{kp[1, 1]:.1f}) wrist=({kp[2, 0]:.1f},{kp[2, 1]:.1f})"
+        )
 
     # 3) Export to COCO (keypoints + categories).
     coco = to_coco(clip)

@@ -1,4 +1,4 @@
-"""Hand keypoint topology + MANO constants (the #1 interop surface).
+"""Hand / arm keypoint topology + MANO constants (the #1 interop surface).
 
 Every fact here is load-bearing. The most common bug when stitching hand
 estimators, MANO fitters, and retargeters together is a silent finger-order
@@ -282,3 +282,149 @@ def wrist_relative(
     """
     kpts = np.asarray(keypoints_3d, dtype=np.float64)
     return kpts - kpts[wrist_index : wrist_index + 1]
+
+
+# --------------------------------------------------------------------------- #
+# Arm / upper-limb keypoints (per side)
+# --------------------------------------------------------------------------- #
+
+
+class ArmConvention(str, Enum):
+    """Keypoint orderings for arm / body-pose estimators.
+
+    ``ARM4`` is the per-side chain ego2dex stores on :class:`ArmPose`
+    (shoulder, elbow, wrist, hip). ``MEDIAPIPE_POSE`` is BlazePose's 33-point
+    body; ``COCO17`` is the COCO body set. Use :func:`arm4_from_pose` to slice
+    a full-body estimate down to ARM4 -- never pick indices by hand.
+    """
+
+    ARM4 = "arm4"
+    MEDIAPIPE_POSE = "mediapipe_pose"
+    COCO17 = "coco17"
+
+
+NUM_ARM_KEYPOINTS: int = 4
+
+# Per-side chain. Index 2 (WRIST) is the same anatomical point as hand kpt 0.
+ARM4_NAMES: tuple[str, ...] = (
+    "SHOULDER",  # 0
+    "ELBOW",  # 1
+    "WRIST",  # 2
+    "HIP",  # 3
+)
+
+ARM4_SHOULDER: int = 0
+ARM4_ELBOW: int = 1
+ARM4_WRIST: int = 2
+ARM4_HIP: int = 3
+
+# Skeleton edges (0-based): hip-shoulder-elbow-wrist.
+ARM_EDGES: tuple[tuple[int, int], ...] = (
+    (3, 0),  # hip -> shoulder
+    (0, 1),  # shoulder -> elbow
+    (1, 2),  # elbow -> wrist
+)
+
+COCO_ARM_SKELETON: tuple[tuple[int, int], ...] = tuple((a + 1, b + 1) for a, b in ARM_EDGES)
+
+# MediaPipe / BlazePose 33-landmark names (image / world pose landmarker).
+NUM_POSE33_KEYPOINTS: int = 33
+MEDIAPIPE_POSE33_NAMES: tuple[str, ...] = (
+    "NOSE",  # 0
+    "LEFT_EYE_INNER",
+    "LEFT_EYE",
+    "LEFT_EYE_OUTER",  # 1-3
+    "RIGHT_EYE_INNER",
+    "RIGHT_EYE",
+    "RIGHT_EYE_OUTER",  # 4-6
+    "LEFT_EAR",
+    "RIGHT_EAR",  # 7-8
+    "MOUTH_LEFT",
+    "MOUTH_RIGHT",  # 9-10
+    "LEFT_SHOULDER",
+    "RIGHT_SHOULDER",  # 11-12
+    "LEFT_ELBOW",
+    "RIGHT_ELBOW",  # 13-14
+    "LEFT_WRIST",
+    "RIGHT_WRIST",  # 15-16
+    "LEFT_PINKY",
+    "RIGHT_PINKY",  # 17-18
+    "LEFT_INDEX",
+    "RIGHT_INDEX",  # 19-20
+    "LEFT_THUMB",
+    "RIGHT_THUMB",  # 21-22
+    "LEFT_HIP",
+    "RIGHT_HIP",  # 23-24
+    "LEFT_KNEE",
+    "RIGHT_KNEE",  # 25-26
+    "LEFT_ANKLE",
+    "RIGHT_ANKLE",  # 27-28
+    "LEFT_HEEL",
+    "RIGHT_HEEL",  # 29-30
+    "LEFT_FOOT_INDEX",
+    "RIGHT_FOOT_INDEX",  # 31-32
+)
+
+# ARM4 indices into MediaPipe Pose33, person-centric left/right.
+POSE33_TO_ARM4_LEFT: tuple[int, ...] = (11, 13, 15, 23)
+POSE33_TO_ARM4_RIGHT: tuple[int, ...] = (12, 14, 16, 24)
+
+# COCO-17 body (OpenPose/YOLO-Pose): nose, eyes, ears, shoulders, elbows,
+# wrists, hips, knees, ankles.
+NUM_COCO17_KEYPOINTS: int = 17
+COCO17_NAMES: tuple[str, ...] = (
+    "NOSE",
+    "LEFT_EYE",
+    "RIGHT_EYE",
+    "LEFT_EAR",
+    "RIGHT_EAR",
+    "LEFT_SHOULDER",
+    "RIGHT_SHOULDER",
+    "LEFT_ELBOW",
+    "RIGHT_ELBOW",
+    "LEFT_WRIST",
+    "RIGHT_WRIST",
+    "LEFT_HIP",
+    "RIGHT_HIP",
+    "LEFT_KNEE",
+    "RIGHT_KNEE",
+    "LEFT_ANKLE",
+    "RIGHT_ANKLE",
+)
+
+COCO17_TO_ARM4_LEFT: tuple[int, ...] = (5, 7, 9, 11)
+COCO17_TO_ARM4_RIGHT: tuple[int, ...] = (6, 8, 10, 12)
+
+
+def arm4_from_pose(
+    keypoints: NDArray[np.floating],
+    src: ArmConvention | str,
+    side: str,
+) -> NDArray[np.floating]:
+    """Slice a full-body keypoint array down to per-side ARM4.
+
+    ``keypoints`` is ``(N, D)`` in ``src`` order. ``side`` is ``'left'`` or
+    ``'right'`` (person-centric). Returns ``(4, D)`` in ARM4 order.
+    """
+    kpts = np.asarray(keypoints)
+    src = ArmConvention(src)
+    side_key = str(side).lower()
+    if side_key not in {"left", "right"}:
+        raise ValueError(f"side must be 'left' or 'right', got {side!r}")
+    if src == ArmConvention.ARM4:
+        if kpts.shape[0] != NUM_ARM_KEYPOINTS:
+            raise ValueError(f"ARM4 expects {NUM_ARM_KEYPOINTS} points, got {kpts.shape}")
+        return kpts
+    if src == ArmConvention.MEDIAPIPE_POSE:
+        if kpts.shape[0] != NUM_POSE33_KEYPOINTS:
+            raise ValueError(
+                f"MediaPipe Pose expects {NUM_POSE33_KEYPOINTS} points, got {kpts.shape}"
+            )
+        idx = POSE33_TO_ARM4_LEFT if side_key == "left" else POSE33_TO_ARM4_RIGHT
+        return kpts[list(idx)]
+    if src == ArmConvention.COCO17:
+        if kpts.shape[0] != NUM_COCO17_KEYPOINTS:
+            raise ValueError(f"COCO-17 expects {NUM_COCO17_KEYPOINTS} points, got {kpts.shape}")
+        idx = COCO17_TO_ARM4_LEFT if side_key == "left" else COCO17_TO_ARM4_RIGHT
+        return kpts[list(idx)]
+    raise ValueError(f"No ARM4 slice defined for {src.value}")

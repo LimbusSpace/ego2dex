@@ -14,7 +14,8 @@ For a real (live) run, install the relevant extras + weights
 `false` in the pipeline config — e.g.:
 
 ```bash
-pip install -e ".[mediapipe]"   # + download hand_landmarker.task
+pip install -e ".[mediapipe]"   # + download hand_landmarker.task + pose_landmarker_lite.task
 ego2dex run -c configs/pipeline/smoke.yaml -i assets/synthetic -o outputs/smoke --strict
-# (set model_path in configs/hands/mediapipe.yaml and run.dry_run=false)
+# (set model_path in configs/hands/mediapipe.yaml and configs/arms/mediapipe_pose.yaml
+#  and run.dry_run=false)
 ```

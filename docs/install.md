@@ -35,7 +35,7 @@ Install only what a stage needs (each pulls torch / heavy deps):
 
 | Extra | Enables | Notes |
 |---|---|---|
-| `mediapipe` | MediaPipe Hands (CPU, no MANO) | + download `hand_landmarker.task` |
+| `mediapipe` | MediaPipe Hands + Pose/arms (CPU, no MANO) | + download `hand_landmarker.task` and `pose_landmarker_lite.task` |
 | `hamer` | HaMeR | + clone repo + `fetch_demo_data.sh` + **MANO** |
 | `wilor` | WiLoR | `pip install git+https://github.com/warmshao/WiLoR-mini` |
 | `detection` | Grounding DINO / YOLO-World / Detic / transformers | |
@@ -95,5 +95,5 @@ against your URDF (see [`retargeting.md`](retargeting.md)).
   smoke pipeline; the full test suite (`-m "not requires_models"`); JSON/COCO
   export; camera math; topology; retarget **dry-run**.
 - **Needs weights/extras**: any live model stage (HaMeR, SAM2, GDINO, Qwen, …),
-  real MediaPipe inference (small bundle), live `dex-retargeting` (URDF), HDF5
+  real MediaPipe inference (hand + pose bundles), live `dex-retargeting` (URDF), HDF5
   export (h5py), LeRobot export (lerobot).

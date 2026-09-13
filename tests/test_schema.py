@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from ego2dex.schema import (
+    ArmPose,
     ClipAnnotation,
     HandPose,
     HandSide,
@@ -23,6 +24,8 @@ def test_clip_json_roundtrip(sample_clip: ClipAnnotation):
     js = sample_clip.model_dump_json()
     again = ClipAnnotation.model_validate_json(js)
     assert again.frames[0].hands[0].side == HandSide.RIGHT.value
+    assert again.frames[0].arms[0].side == HandSide.RIGHT.value
+    assert len(again.frames[0].arms[0].keypoints_2d) == 4
     assert again.frames[0].detections[0].label == "cup"
     validate_clip_json(js)
 
@@ -36,6 +39,13 @@ def test_numpy_coercion():
 def test_handpose_validates_count():
     with pytest.raises(ValidationError):
         HandPose(keypoints_2d=[[0, 0, 1]] * 5)  # not 21
+
+
+def test_armpose_validates_count():
+    with pytest.raises(ValidationError):
+        ArmPose(keypoints_2d=[[0, 0, 1]] * 3)  # not 4
+    ok = ArmPose.from_arrays(np.random.rand(4, 3), side="right")
+    assert len(ok.keypoints_2d) == 4
 
 
 def test_mano_dim_guard():

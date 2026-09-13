@@ -26,10 +26,11 @@ from . import stages as _stages
 from . import viz as _viz
 from .config import load_config
 from .pipeline import Pipeline
-from .topology import HandConvention
+from .topology import ArmConvention, HandConvention
 from .version import __version__
 
 __all__ = [
+    "ArmConvention",
     "HandConvention",
     "Pipeline",
     "__version__",

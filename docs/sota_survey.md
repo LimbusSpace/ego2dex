@@ -46,6 +46,21 @@ has an egocentric mode + the 100DOH detector).
 (1€) filter** for real-time (bundled, pure-python). Both exposed as the
 `hands/smoothing` sub-stage.
 
+## B2. Arm / upper-limb joints  *(default: MediaPipe Pose)*
+
+Hand estimators stop at the wrist. Dexterous retargeting and egocentric reach
+also need the proximal chain (shoulder → elbow → wrist, plus hip as a torso
+anchor). ego2dex stores this as per-side **ARM4** and keeps the full-body
+estimate when the backend produces one.
+
+| Model | Venue / arXiv | License | Why |
+|---|---|---|---|
+| **MediaPipe Pose / BlazePose** ⭐ | [docs](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | 33 body landmarks (`pose_landmarks` image + `pose_world_landmarks` metric). CPU, no SMPL. Sliced to ARM4 via `arm4_from_pose`. The dependency-free default / smoke path (`arms/mediapipe_pose`). |
+| YOLO-Pose / RTMPose (optional) | — | check weights | COCO-17 body; slice with `ArmConvention.COCO17`. Not registered yet. |
+
+ARM4 index 2 is the same anatomical wrist as hand keypoint 0, so a later stage
+can stitch a recovered hand onto the arm.
+
 ## C. Open-vocabulary detection — boxes  *(default: Grounding DINO)*
 
 | Model | Venue / arXiv | License | Why |

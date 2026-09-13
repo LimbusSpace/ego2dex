@@ -142,6 +142,7 @@ class Stage(ABC):
 # Registries (one per family) + the lookup hub
 # --------------------------------------------------------------------------- #
 HANDS: Registry[Stage] = Registry("hands")
+ARMS: Registry[Stage] = Registry("arms")
 DETECTION: Registry[Stage] = Registry("detection")
 SEGMENTATION: Registry[Stage] = Registry("segmentation")
 HOI: Registry[Stage] = Registry("hoi")
@@ -155,6 +156,7 @@ VIZ: Registry[Stage] = Registry("viz")
 FAMILY_REGISTRIES: dict[str, Registry[Stage]] = {
     "ingest": INGEST,
     "hands": HANDS,
+    "arms": ARMS,
     "detection": DETECTION,
     "segmentation": SEGMENTATION,
     "hoi": HOI,

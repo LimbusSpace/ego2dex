@@ -2,8 +2,9 @@
 
 Mirrors the EgoDex / robomimic layout (arXiv:2505.11709): per-frame camera
 intrinsics + extrinsics, per-hand 3D keypoints + MANO + per-joint confidence,
-the retargeted robot joint trajectory, and language task strings. Missing values
-are NaN-filled so the arrays stay dense ``(T, ...)``.
+per-arm 3D keypoints (shoulder-elbow-wrist-hip), the retargeted robot joint
+trajectory, and language task strings. Missing values are NaN-filled so the
+arrays stay dense ``(T, ...)``.
 
 Needs ``h5py`` (the ``[export]`` extra).
 """
@@ -67,6 +68,13 @@ class HDF5Writer(ExportStageBase):
                 g.create_dataset("mano_pose", data=pose)  # 48 = 3 global + 45
                 g.create_dataset("mano_betas", data=betas)
 
+            arms = f.create_group("arms")
+            for side in (HandSide.LEFT, HandSide.RIGHT):
+                g = arms.create_group(side.value)
+                kp3d, conf = self._arm_arrays(frames, side, T)
+                g.create_dataset("keypoints_3d", data=kp3d)
+                g.create_dataset("confidence", data=conf)
+
             if clip.retargeting:
                 rg = f.create_group("robot")
                 for r in clip.retargeting:
@@ -95,6 +103,19 @@ class HDF5Writer(ExportStageBase):
                     betas[i] = np.asarray(hand.mano.betas)
                 break
         return kp3d, conf, pose, betas
+
+    def _arm_arrays(self, frames, side: HandSide, T: int):
+        kp3d = np.full((T, 4, 3), np.nan)
+        conf = np.full((T, 4), np.nan)
+        for i, fa in enumerate(frames):
+            for arm in fa.arms:
+                if HandSide(arm.side) != side:
+                    continue
+                conf[i] = arm.kp2d_array()[:, 2]
+                if arm.keypoints_3d is not None:
+                    kp3d[i] = arm.kp3d_array()
+                break
+        return kp3d, conf
 
     def _language(self, clip: ClipAnnotation) -> str:
         if self.param("language"):

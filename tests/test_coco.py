@@ -6,12 +6,14 @@ import numpy as np
 
 from ego2dex.schema import HandSide, to_coco
 from ego2dex.schema.coco import (
+    armpose_to_coco_keypoints,
+    coco_keypoints_to_armpose,
     coco_keypoints_to_handpose,
     detection_to_coco_ann,
     handpose_to_coco_keypoints,
 )
-from ego2dex.schema.core import Detection, HandPose
-from ego2dex.topology import COCO_HAND_SKELETON, STANDARD21_NAMES
+from ego2dex.schema.core import ArmPose, Detection, HandPose
+from ego2dex.topology import ARM4_NAMES, COCO_ARM_SKELETON, COCO_HAND_SKELETON, STANDARD21_NAMES
 
 
 def test_keypoint_flat_roundtrip():
@@ -23,6 +25,17 @@ def test_keypoint_flat_roundtrip():
     back = coco_keypoints_to_handpose(flat, side="right")
     assert np.allclose(hand.kp2d_array()[:, :2], back.kp2d_array()[:, :2])
     assert back.side == HandSide.RIGHT.value
+
+
+def test_arm_keypoint_flat_roundtrip():
+    kp = np.random.RandomState(1).rand(4, 3)
+    kp[:, 2] = 1.0
+    arm = ArmPose.from_arrays(kp, side="left")
+    flat = armpose_to_coco_keypoints(arm)
+    assert len(flat) == 12
+    back = coco_keypoints_to_armpose(flat, side="left")
+    assert np.allclose(arm.kp2d_array()[:, :2], back.kp2d_array()[:, :2])
+    assert back.side == HandSide.LEFT.value
 
 
 def test_detection_to_coco_ann():
@@ -40,12 +53,17 @@ def test_to_coco_structure(sample_clip):
     assert "hand" in cats
     assert cats["hand"]["keypoints"] == list(STANDARD21_NAMES)
     assert cats["hand"]["skeleton"] == [list(e) for e in COCO_HAND_SKELETON]
+    assert "arm" in cats
+    assert cats["arm"]["keypoints"] == list(ARM4_NAMES)
+    assert cats["arm"]["skeleton"] == [list(e) for e in COCO_ARM_SKELETON]
     assert "cup" in cats  # from the detection/mask label
-    # one image per frame; at least the hand + detection + mask annotations
+    # one image per frame; at least the hand + arm + detection + mask annotations
     assert len(coco["images"]) == len(sample_clip.frames)
-    assert len(coco["annotations"]) >= 3
+    assert len(coco["annotations"]) >= 4
 
 
 def test_coco_skeleton_is_one_based():
     for a, b in COCO_HAND_SKELETON:
+        assert a >= 1 and b >= 1
+    for a, b in COCO_ARM_SKELETON:
         assert a >= 1 and b >= 1

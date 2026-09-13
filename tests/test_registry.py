@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ego2dex.stages.base import (
+    ARMS,
     CAPTION,
     DETECTION,
     EXPORT,
@@ -54,6 +55,7 @@ def test_registry_duplicate_raises():
 
 def test_expected_primary_stages_present():
     assert "mediapipe" in HANDS and "hamer" in HANDS and "wilor" in HANDS
+    assert "mediapipe_pose" in ARMS
     assert "grounding_dino" in DETECTION and "grounded_sam2" in DETECTION
     assert "sam2" in SEGMENTATION and "samurai" in SEGMENTATION
     assert "hand_object_detector" in HOI and "egohos" in HOI
@@ -73,6 +75,7 @@ def test_available_stages_covers_all_families():
     fams = available_stages()
     for fam in (
         "hands",
+        "arms",
         "detection",
         "segmentation",
         "hoi",

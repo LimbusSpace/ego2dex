@@ -39,6 +39,7 @@ def test_all_families_have_configs():
     families = {p.parent.name for p in STAGE_CONFIGS}
     for fam in (
         "hands",
+        "arms",
         "detection",
         "segmentation",
         "hoi",

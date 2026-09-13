@@ -68,10 +68,11 @@ def run(
     console.print(pipe.describe())
     clip = pipe.run(input, output_dir=output)
     n_hands = sum(len(f.hands) for f in clip.frames)
+    n_arms = sum(len(f.arms) for f in clip.frames)
     n_dets = sum(len(f.detections) for f in clip.frames)
     console.print(
-        f"[green]Done[/]: {len(clip.frames)} frames, {n_hands} hands, {n_dets} detections, "
-        f"{len(clip.retargeting)} retarget result(s)."
+        f"[green]Done[/]: {len(clip.frames)} frames, {n_hands} hands, {n_arms} arms, "
+        f"{n_dets} detections, {len(clip.retargeting)} retarget result(s)."
     )
 
 

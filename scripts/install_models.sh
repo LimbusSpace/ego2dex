@@ -30,12 +30,16 @@ mano_note() {
 }
 
 install_mediapipe() {
-  log "MediaPipe Hands (Apache-2.0, CPU)"
+  log "MediaPipe Hands + Pose (Apache-2.0, CPU)"
   $PIP install "mediapipe>=0.10"
   log "fetching hand_landmarker.task (~7 MB)"
   curl -L -o "$DATA_DIR/hand_landmarker.task" \
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
   log "set params.model_path=$DATA_DIR/hand_landmarker.task (or EGO2DEX_MEDIAPIPE_TASK)"
+  log "fetching pose_landmarker_lite.task (~6 MB)"
+  curl -L -o "$DATA_DIR/pose_landmarker_lite.task" \
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+  log "set arms params.model_path=$DATA_DIR/pose_landmarker_lite.task (or EGO2DEX_MEDIAPIPE_POSE_TASK)"
 }
 
 install_hamer() {

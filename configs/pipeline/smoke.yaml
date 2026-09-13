@@ -3,9 +3,10 @@
 # Runs the whole graph end-to-end on a tiny synthetic clip using the dry-run
 # path (deterministic synthetic outputs). This is what `pixi run smoke` /
 # `make smoke` exercise. Flip run.dry_run -> false and install the relevant
-# extras + weights to do a real CPU run (e.g. mediapipe + hand_landmarker.task).
+# extras + weights to do a real CPU run (e.g. mediapipe + hand_landmarker.task
+# + pose_landmarker_lite.task).
 name: smoke
-description: "MediaPipe-only CPU smoke test (dry-run, no weights)."
+description: "MediaPipe hands + arms CPU smoke test (dry-run, no weights)."
 
 io:
   sample_fps: null
@@ -25,5 +26,6 @@ mano:
 stages:
   - include: configs/hands/mediapipe.yaml
   - { family: hands, name: smoothing, params: { method: oneeuro, beta: 0.3 } }
+  - include: configs/arms/mediapipe_pose.yaml
   - include: configs/export/json.yaml
   - include: configs/export/coco.yaml

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from .coco import (
+    armpose_to_coco_keypoints,
+    coco_keypoints_to_armpose,
     coco_keypoints_to_handpose,
     handpose_to_coco_keypoints,
     save_coco,
@@ -12,6 +14,7 @@ from .core import (
     SCHEMA_VERSION,
     ActionSegment,
     ActiveObject,
+    ArmPose,
     CameraModelType,
     CameraParams,
     Caption,
@@ -46,6 +49,7 @@ __all__ = [
     # geometric
     "MANOParams",
     "HandPose",
+    "ArmPose",
     "Detection",
     "Mask",
     "CameraParams",
@@ -73,6 +77,8 @@ __all__ = [
     "save_coco",
     "handpose_to_coco_keypoints",
     "coco_keypoints_to_handpose",
+    "armpose_to_coco_keypoints",
+    "coco_keypoints_to_armpose",
     # jsonschema
     "clip_json_schema",
     "write_json_schema",

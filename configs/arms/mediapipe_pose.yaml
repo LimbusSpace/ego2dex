@@ -1,0 +1,15 @@
+# MediaPipe Pose Landmarker (Apache-2.0, CPU). Slices BlazePose 33 into ARM4
+# (shoulder, elbow, wrist, hip) per side. Wrist == hand kpt 0 anatomically.
+family: arms
+name: mediapipe_pose
+enabled: true
+params:
+  num_poses: 1
+  num_arms: 2
+  min_detection_confidence: 0.5
+  min_presence_confidence: 0.5
+  min_tracking_confidence: 0.5
+  min_arm_confidence: 0.2
+  # Path to pose_landmarker_lite.task (download separately, ~6 MB). Or set
+  # EGO2DEX_MEDIAPIPE_POSE_TASK. Only needed for a LIVE (non-dry-run) run.
+  model_path: null

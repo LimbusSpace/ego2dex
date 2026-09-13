@@ -20,6 +20,19 @@ a superset of the dataset survey ([`datasets.md`](datasets.md)).
 | `keypoint_convention` | enum | `standard21` (= MediaPipe = OpenPose), `mano_native` |
 | `score` | float | |
 
+### `ArmPose`
+| field | type | notes |
+|---|---|---|
+| `side` | `left`/`right`/`unknown` | person-centric |
+| `keypoints_2d` | `4 × [x, y, conf]` | pixels, ARM4 = shoulder, elbow, wrist, hip |
+| `keypoints_3d` | `4 × [x, y, z]` (opt) | camera / world-landmark frame, meters |
+| `keypoint_convention` | enum | `arm4` (stored); sources `mediapipe_pose` / `coco17` are sliced via `arm4_from_pose` |
+| `pose33` | `33 × [x, y, conf]` (opt) | full MediaPipe BlazePose body, when available |
+| `coco17` | `17 × [x, y, conf]` (opt) | full COCO-17 body, when available |
+| `score` | float | mean ARM4 confidence |
+
+ARM4 index 2 (`WRIST`) is the same anatomical point as `HandPose` keypoint 0. See [`../src/ego2dex/topology.py`](../src/ego2dex/topology.py).
+
 ### `MANOParams`
 `global_orient[3]` (axis-angle) · `pose[45]` (15×3 axis-angle, **no global**) ·
 `betas[10]` · `trans[3]` · `is_pca` / `num_pca_comps`. `full_pose()` →
@@ -58,7 +71,7 @@ reject a 48-length `pose`. See [`../src/ego2dex/topology.py`](../src/ego2dex/top
 ```text
 ClipAnnotation
 ├── video_meta : VideoMeta            (path, fps, w, h, num_frames, source, sampled_fps)
-├── frames[]   : FrameAnnotation      (frame_id, timestamp, camera, hands[], detections[],
+├── frames[]   : FrameAnnotation      (frame_id, timestamp, camera, hands[], arms[], detections[],
 │                                       masks[], interactions[], active_objects[], tags, caption, gaze)
 ├── tracks[]   : Track                (instance_id -> label table, first/last frame)
 ├── action_segments[] : ActionSegment
@@ -72,7 +85,8 @@ ClipAnnotation
 1. **Native ego2dex JSON** (`export/json`): one `frames/<id>.json` per frame +
    `clip.json` manifest + `clip_full.json` + `ego2dex.schema.json`.
 2. **COCO** (`export/coco`): images/annotations/categories; a `hand` keypoint
-   category carries the 21 names + 1-based skeleton; detections → bbox anns;
+   category carries the 21 names + 1-based skeleton; an `arm` keypoint category
+   carries the 4 ARM4 names + 1-based skeleton; detections → bbox anns;
    masks → RLE `segmentation`.
 3. **EgoDex-style HDF5** (`export/hdf5`) and **LeRobotDataset** (`export/lerobot`)
    — see [`pretraining.md`](pretraining.md).
@@ -90,5 +104,7 @@ validate_clip_json(open("clip_full.json").read()) # raises on invalid
 `ego2dex/topology.py` pins: the standard-21 order (wrist=0; thumb→pinky,
 base→tip), MANO constants (778 verts, 16 joints, 45/48 pose, 10 betas), MANO's
 native finger order (index, middle, **pinky, ring**, thumb), tip vertex ids
-(manopth `[745,317,444,556,673]`), and the manopth↔standard-21 remap. Use
-`remap_keypoints(src, dst)` / `apply_remap(...)` — never reorder fingers by hand.
+(manopth `[745,317,444,556,673]`), the manopth↔standard-21 remap, and the ARM4
+arm chain (shoulder, elbow, wrist, hip) plus MediaPipe Pose33 / COCO-17 slices.
+Use `remap_keypoints(src, dst)` / `apply_remap(...)` for hands and
+`arm4_from_pose(kpts, src, side)` for arms — never reorder joints by hand.

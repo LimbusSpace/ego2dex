@@ -8,7 +8,7 @@ them so their stages are available too.
 
 from __future__ import annotations
 
-from . import caption, detection, hands, hoi, pose
+from . import arms, caption, detection, hands, hoi, pose
 from .base import (
     FAMILY_REGISTRIES,
     RunContext,
@@ -23,6 +23,7 @@ __all__ = [
     "RunContext",
     "Stage",
     "available_stages",
+    "arms",
     "build_stage",
     "caption",
     "detection",

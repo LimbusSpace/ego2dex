@@ -7,15 +7,23 @@ import pytest
 
 from ego2dex import topology as T
 from ego2dex.topology import (
+    ARM4_NAMES,
+    ARM_EDGES,
     HAND_EDGES,
     MANO_FULL_POSE_DIM,
     MANO_POSE_DIM,
     MANOPTH_TO_STANDARD21,
+    NUM_ARM_KEYPOINTS,
     NUM_HAND_KEYPOINTS,
+    NUM_POSE33_KEYPOINTS,
+    POSE33_TO_ARM4_LEFT,
+    POSE33_TO_ARM4_RIGHT,
     STANDARD21_NAMES,
     STANDARD21_TO_MANOPTH,
+    ArmConvention,
     HandConvention,
     apply_remap,
+    arm4_from_pose,
     remap_keypoints,
     split_full_pose,
     wrist_relative,
@@ -86,3 +94,36 @@ def test_wrist_relative():
     kp = np.random.RandomState(3).rand(21, 3)
     wr = wrist_relative(kp)
     assert np.allclose(wr[0], 0.0)
+
+
+def test_arm4_names_and_edges():
+    assert len(ARM4_NAMES) == NUM_ARM_KEYPOINTS == 4
+    assert ARM4_NAMES == ("SHOULDER", "ELBOW", "WRIST", "HIP")
+    assert ARM_EDGES == ((3, 0), (0, 1), (1, 2))
+    for a, b in ARM_EDGES:
+        assert 0 <= a < 4 and 0 <= b < 4
+
+
+def test_arm4_from_mediapipe_pose():
+    pose = np.arange(NUM_POSE33_KEYPOINTS * 3).reshape(NUM_POSE33_KEYPOINTS, 3).astype(np.float64)
+    left = arm4_from_pose(pose, ArmConvention.MEDIAPIPE_POSE, "left")
+    right = arm4_from_pose(pose, ArmConvention.MEDIAPIPE_POSE, "right")
+    assert left.shape == (4, 3)
+    assert np.array_equal(left, pose[list(POSE33_TO_ARM4_LEFT)])
+    assert np.array_equal(right, pose[list(POSE33_TO_ARM4_RIGHT)])
+    # person-centric: left shoulder is BlazePose 11, right is 12
+    assert POSE33_TO_ARM4_LEFT == (11, 13, 15, 23)
+    assert POSE33_TO_ARM4_RIGHT == (12, 14, 16, 24)
+
+
+def test_arm4_from_coco17():
+    pose = np.arange(17 * 2).reshape(17, 2).astype(np.float64)
+    left = arm4_from_pose(pose, ArmConvention.COCO17, "left")
+    assert np.array_equal(left, pose[[5, 7, 9, 11]])
+
+
+def test_arm4_passthrough_and_bad_side():
+    arm = np.ones((4, 3))
+    assert np.array_equal(arm4_from_pose(arm, ArmConvention.ARM4, "left"), arm)
+    with pytest.raises(ValueError):
+        arm4_from_pose(arm, ArmConvention.ARM4, "unknown")

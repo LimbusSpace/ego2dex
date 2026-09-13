@@ -6,7 +6,7 @@ Stages are selected **by name** from per-family **registries** and configured by
 **OmegaConf YAML**. Everything is optional/toggleable.
 
 ```text
-ingest → (camera/SLAM) → hands → detection → segmentation/tracking
+ingest → (camera/SLAM) → hands → arms → detection → segmentation/tracking
        → hand-object-interaction → tags → captions
        → annotation store → retargeting → export → viz
 ```
@@ -22,9 +22,9 @@ See the mermaid diagram in [`diagrams/pipeline.md`](diagrams/pipeline.md).
   `import_or_raise(module, extra)` gives a clear, actionable `ImportError`.
 - **`RunContext`**: `output_dir`, `device`, `dry_run`, `strict`, `frames`
   (a `FrameStore`), `mano_dir`, `extras`.
-- **Registries** (`utils/registry.py`): one per family — `HANDS`, `DETECTION`,
-  `SEGMENTATION`, `HOI`, `CAPTION`, `POSE`, `RETARGET`, `EXPORT`, `VIZ`. Stages
-  self-register via `@HANDS.register("mediapipe")` at import time.
+- **Registries** (`utils/registry.py`): one per family — `HANDS`, `ARMS`,
+  `DETECTION`, `SEGMENTATION`, `HOI`, `CAPTION`, `POSE`, `RETARGET`, `EXPORT`,
+  `VIZ`. Stages self-register via `@HANDS.register("mediapipe")` at import time.
 - **`Pipeline`** (`pipeline.py`): builds stages from a config list, ingests frames
   into a `FrameStore`, runs stages with progress, handles per-frame vs clip-level
   stages, and **gracefully skips** a stage whose deps can't load (logged, unless
@@ -35,7 +35,7 @@ See the mermaid diagram in [`diagrams/pipeline.md`](diagrams/pipeline.md).
 - **Live** (`run.dry_run = false`): stages call their real models. Missing
   weights/deps → the stage is skipped (or raises under `strict`).
 - **Dry-run** (`run.dry_run = true`): **no weights load at all.** Each stage emits
-  deterministic synthetic outputs (topologically valid hands, boxes, masks,
+  deterministic synthetic outputs (topologically valid hands, arms, boxes, masks,
   tracks, interactions, tags, captions, camera trajectory, retargeted joints).
   This makes the entire graph testable on CPU with no models — the basis of
   `make smoke` and `tests/test_pipeline.py`.

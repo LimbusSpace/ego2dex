@@ -1,4 +1,4 @@
-"""Draw ego2dex annotations onto frames (hands, boxes, masks, caption).
+"""Draw ego2dex annotations onto frames (hands, arms, boxes, masks, caption).
 
 Uses OpenCV only (a core dep); writes annotated images to disk (no GUI). Doubles
 as a pipeline stage (``viz/overlay``) and a function for the ``ego2dex viz`` CLI.
@@ -12,7 +12,7 @@ import numpy as np
 
 from ..schema.core import ClipAnnotation, FrameAnnotation, HandSide
 from ..stages.base import VIZ, Stage
-from ..topology import HAND_EDGES
+from ..topology import ARM_EDGES, HAND_EDGES
 
 _SIDE_COLOR = {
     HandSide.LEFT: (255, 120, 0),  # BGR -> blue-ish
@@ -53,6 +53,18 @@ def draw_frame(image: np.ndarray, fa: FrameAnnotation, alpha: float = 0.4) -> np
             1,
             cv2.LINE_AA,
         )
+
+    # arms (shoulder-elbow-wrist-hip; drawn under hands)
+    for arm in fa.arms:
+        color = _SIDE_COLOR.get(HandSide(arm.side), (0, 255, 0))
+        kp = arm.kp2d_array()
+        for a, b in ARM_EDGES:
+            pa, pb = kp[a], kp[b]
+            if pa[2] > 0 and pb[2] > 0:
+                cv2.line(canvas, (int(pa[0]), int(pa[1])), (int(pb[0]), int(pb[1])), color, 3)
+        for x, y, c in kp:
+            if c > 0:
+                cv2.circle(canvas, (int(x), int(y)), 5, color, 2)
 
     # hands (skeleton)
     for hand in fa.hands:

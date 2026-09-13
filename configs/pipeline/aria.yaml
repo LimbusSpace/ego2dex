@@ -28,6 +28,8 @@ stages:
   # --- 3D hands + smoothing ---
   - include: configs/hands/hamer.yaml
   - { family: hands, name: smoothing, params: { method: oneeuro } }
+  # --- arm joints (shoulder-elbow-wrist-hip) ---
+  - include: configs/arms/mediapipe_pose.yaml
   # --- interaction + captions ---
   - include: configs/hoi/egohos.yaml
   - include: configs/caption/qwen2_5_vl.yaml

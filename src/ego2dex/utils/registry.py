@@ -1,6 +1,6 @@
 """A tiny, generic name->class registry.
 
-Each stage family (hands, detection, segmentation, hoi, caption, pose,
+Each stage family (hands, arms, detection, segmentation, hoi, caption, pose,
 retarget, export) owns one ``Registry``. Stages self-register via the
 ``@REGISTRY.register("name")`` decorator at import time. Configs then select a
 stage purely by its string name, so swapping a backbone is a one-line YAML edit.

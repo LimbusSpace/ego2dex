@@ -9,7 +9,7 @@ ego2dex is a modular research pipeline for turning first-person video into struc
 ## Pipeline
 
 ```text
-ingest -> camera / pose -> hands -> detection -> segmentation / tracking
+ingest -> camera / pose -> hands -> arms -> detection -> segmentation / tracking
        -> hand-object interaction -> annotations -> retargeting -> export
 ```
 

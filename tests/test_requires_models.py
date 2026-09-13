@@ -33,6 +33,19 @@ def test_mediapipe_live_infer(synthetic_dir):
     assert isinstance(hands, list)  # may be empty on synthetic frames
 
 
+@pytest.mark.skipif(not _have("mediapipe"), reason="mediapipe extra not installed")
+def test_mediapipe_pose_live_infer(synthetic_dir):
+    """Real MediaPipe PoseLandmarker on the synthetic clip (needs the .task bundle)."""
+    import cv2
+
+    stage = build_stage("arms", "mediapipe_pose", {"num_poses": 1})
+    stage.bind(RunContext(dry_run=False, device="cpu"))
+    stage.ensure_loaded()  # raises a clear ImportError if the .task model is missing
+    img = cv2.imread(str(sorted(synthetic_dir.glob("*.png"))[0]))
+    arms = stage.infer(img, frame_id=0)
+    assert isinstance(arms, list)  # may be empty on synthetic frames
+
+
 @pytest.mark.skipif(not _have("torch"), reason="torch not installed")
 def test_hamer_loads_with_weights():
     """HaMeR should load when torch + the hamer package + checkpoint are present."""

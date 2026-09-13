@@ -3,7 +3,8 @@
 Follows COCO conventions exactly: bbox ``[x, y, w, h]`` (top-left, 0-indexed),
 keypoints flattened to ``[x, y, v]`` triplets (v in {0,1,2}), masks as RLE in
 ``segmentation``, and a **1-based** skeleton. A "hand" keypoint category carries
-the standard-21 names + skeleton from :mod:`ego2dex.topology`.
+the standard-21 names + skeleton, and an "arm" category carries the ARM4
+(shoulder-elbow-wrist-hip) names + skeleton, from :mod:`ego2dex.topology`.
 
 Round-trippable for keypoints + boxes (see tests/test_coco.py).
 """
@@ -13,10 +14,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..topology import COCO_HAND_SKELETON, NUM_HAND_KEYPOINTS, STANDARD21_NAMES
-from .core import ClipAnnotation, Detection, HandPose, HandSide
+from ..topology import (
+    ARM4_NAMES,
+    COCO_ARM_SKELETON,
+    COCO_HAND_SKELETON,
+    NUM_ARM_KEYPOINTS,
+    NUM_HAND_KEYPOINTS,
+    STANDARD21_NAMES,
+)
+from .core import ArmPose, ClipAnnotation, Detection, HandPose, HandSide
 
 HAND_CATEGORY_ID = 1
+ARM_CATEGORY_ID = 2
 KP_CONF_VISIBLE = 0.5  # conf >= this -> v=2 (visible), else v=1 (labeled, occluded)
 
 
@@ -52,9 +61,38 @@ def coco_keypoints_to_handpose(
     return HandPose(side=side, keypoints_2d=kp2d, **kwargs)
 
 
-def _keypoint_bbox(hand: HandPose) -> list[float]:
-    xs = [p[0] for p in hand.keypoints_2d if p[2] > 0]
-    ys = [p[1] for p in hand.keypoints_2d if p[2] > 0]
+def armpose_to_coco_keypoints(arm: ArmPose) -> list[float]:
+    """4 ``[x,y,conf]`` -> flat ``[x,y,v]*4`` COCO list (len 12)."""
+    flat: list[float] = []
+    for x, y, c in arm.keypoints_2d:
+        if c <= 0:
+            v = 0
+        elif c >= KP_CONF_VISIBLE:
+            v = 2
+        else:
+            v = 1
+        flat.extend([float(x), float(y), float(v)])
+    return flat
+
+
+def coco_keypoints_to_armpose(
+    flat: list[float], side: HandSide | str = HandSide.UNKNOWN, **kwargs: Any
+) -> ArmPose:
+    """Inverse of :func:`armpose_to_coco_keypoints`."""
+    if len(flat) != 3 * NUM_ARM_KEYPOINTS:
+        raise ValueError(f"expected {3 * NUM_ARM_KEYPOINTS} values, got {len(flat)}")
+    kp2d = []
+    for i in range(NUM_ARM_KEYPOINTS):
+        x, y, v = flat[3 * i : 3 * i + 3]
+        conf = {0: 0.0, 1: 0.5, 2: 1.0}.get(int(v), float(v))
+        kp2d.append([float(x), float(y), conf])
+    side = HandSide(side) if not isinstance(side, HandSide) else side
+    return ArmPose(side=side, keypoints_2d=kp2d, **kwargs)
+
+
+def _keypoint_bbox(keypoints_2d: list[list[float]]) -> list[float]:
+    xs = [p[0] for p in keypoints_2d if p[2] > 0]
+    ys = [p[1] for p in keypoints_2d if p[2] > 0]
     if not xs:
         return [0.0, 0.0, 0.0, 0.0]
     x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
@@ -120,12 +158,23 @@ def hand_keypoint_category() -> dict:
     }
 
 
+def arm_keypoint_category() -> dict:
+    return {
+        "id": ARM_CATEGORY_ID,
+        "name": "arm",
+        "supercategory": "person",
+        "keypoints": list(ARM4_NAMES),
+        "skeleton": [list(e) for e in COCO_ARM_SKELETON],
+    }
+
+
 def to_coco(clip: ClipAnnotation, file_name_fmt: str = "{:06d}.jpg") -> dict:
     """Convert a :class:`ClipAnnotation` to a COCO-format dict.
 
-    ``categories`` = the hand keypoint category (id 1) + one object category per
-    distinct detection/mask label (ids 2..). Hands become keypoint annotations;
-    detections become bbox annotations; masks become RLE ``segmentation``.
+    ``categories`` = the hand keypoint category (id 1), the arm keypoint
+    category (id 2), + one object category per distinct detection/mask label
+    (ids 3..). Hands and arms become keypoint annotations; detections become
+    bbox annotations; masks become RLE ``segmentation``.
     """
     images: list[dict] = []
     annotations: list[dict] = []
@@ -136,8 +185,8 @@ def to_coco(clip: ClipAnnotation, file_name_fmt: str = "{:06d}.jpg") -> dict:
         labels.update(d.label for d in f.detections)
         labels.update(m.label for m in f.masks if m.label)
     label_to_id: dict[str, int] = {}
-    categories = [hand_keypoint_category()]
-    for i, label in enumerate(sorted(labels), start=HAND_CATEGORY_ID + 1):
+    categories = [hand_keypoint_category(), arm_keypoint_category()]
+    for i, label in enumerate(sorted(labels), start=ARM_CATEGORY_ID + 1):
         label_to_id[label] = i
         categories.append({"id": i, "name": label, "supercategory": "object"})
 
@@ -168,11 +217,31 @@ def to_coco(clip: ClipAnnotation, file_name_fmt: str = "{:06d}.jpg") -> dict:
                     "num_keypoints": sum(
                         1 for i in range(NUM_HAND_KEYPOINTS) if kps[3 * i + 2] > 0
                     ),
-                    "bbox": _keypoint_bbox(hand),
-                    "area": float(_keypoint_bbox(hand)[2] * _keypoint_bbox(hand)[3]),
+                    "bbox": _keypoint_bbox(hand.keypoints_2d),
+                    "area": float(
+                        _keypoint_bbox(hand.keypoints_2d)[2] * _keypoint_bbox(hand.keypoints_2d)[3]
+                    ),
                     "iscrowd": 0,
                     "score": float(hand.score),
                     "side": hand.side if isinstance(hand.side, str) else hand.side.value,
+                }
+            )
+            ann_id += 1
+        for arm in f.arms:
+            kps = armpose_to_coco_keypoints(arm)
+            bbox = _keypoint_bbox(arm.keypoints_2d)
+            annotations.append(
+                {
+                    "id": ann_id,
+                    "image_id": f.frame_id,
+                    "category_id": ARM_CATEGORY_ID,
+                    "keypoints": kps,
+                    "num_keypoints": sum(1 for i in range(NUM_ARM_KEYPOINTS) if kps[3 * i + 2] > 0),
+                    "bbox": bbox,
+                    "area": float(bbox[2] * bbox[3]),
+                    "iscrowd": 0,
+                    "score": float(arm.score),
+                    "side": arm.side if isinstance(arm.side, str) else arm.side.value,
                 }
             )
             ann_id += 1

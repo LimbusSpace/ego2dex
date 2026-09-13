@@ -3,7 +3,7 @@
 Three tiers, modeled as a superset of what Ego4D / Ego-Exo4D / H2O / DexYCB /
 HOI4D / OakInk2 / AssemblyHands / ARCTIC / HOT3D provide (see docs/datasets.md):
 
-  * per-frame geometric  (HandPose, Detection, Mask, CameraParams, Gaze, ...)
+  * per-frame geometric  (HandPose, ArmPose, Detection, Mask, CameraParams, Gaze, ...)
   * interaction          (HandObjectInteraction, ActiveObject, ...)
   * semantic / temporal  (Tags, Caption, ActionSegment, Narration, ...)
 
@@ -27,7 +27,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from ..topology import (
     MANO_NUM_BETAS,
     MANO_POSE_DIM,
+    NUM_ARM_KEYPOINTS,
+    NUM_COCO17_KEYPOINTS,
     NUM_HAND_KEYPOINTS,
+    NUM_POSE33_KEYPOINTS,
+    ArmConvention,
     HandConvention,
 )
 
@@ -191,6 +195,99 @@ class HandPose(Ego2DexModel):
         keypoints_3d: np.ndarray | None = None,
         **kwargs: Any,
     ) -> HandPose:
+        return cls(
+            side=HandSide(side) if not isinstance(side, HandSide) else side,
+            keypoints_2d=np.asarray(keypoints_2d),
+            keypoints_3d=None if keypoints_3d is None else np.asarray(keypoints_3d),
+            **kwargs,
+        )
+
+
+class ArmPose(Ego2DexModel):
+    """A single arm in one frame: 2D/3D shoulder-elbow-wrist-hip keypoints.
+
+    The 4-point ARM4 chain is the same anatomical wrist as ``HandPose`` kpt 0,
+    so a later stage can stitch a recovered hand onto the arm. Optional
+    ``pose33`` / ``coco17`` fields keep the full-body estimate when a body
+    landmarker produced it.
+    """
+
+    side: HandSide = HandSide.UNKNOWN
+    keypoints_2d: list[list[float]] = Field(..., description="4 x [x, y, conf] in pixels (ARM4)")
+    keypoints_3d: list[list[float]] | None = Field(
+        default=None, description="4 x [x, y, z] (camera frame, meters)"
+    )
+    keypoint_convention: ArmConvention = ArmConvention.ARM4
+    pose33: list[list[float]] | None = Field(
+        default=None, description="optional 33 x [x, y, conf] MediaPipe Pose body"
+    )
+    coco17: list[list[float]] | None = Field(
+        default=None, description="optional 17 x [x, y, conf] COCO body"
+    )
+    score: float = 1.0
+
+    @field_validator("keypoints_2d")
+    @classmethod
+    def _kp2d(cls, v: list[list[float]]) -> list[list[float]]:
+        if len(v) != NUM_ARM_KEYPOINTS:
+            raise ValueError(f"keypoints_2d must have {NUM_ARM_KEYPOINTS} points, got {len(v)}")
+        for p in v:
+            if len(p) != 3:
+                raise ValueError("each 2D keypoint must be [x, y, conf]")
+        return v
+
+    @field_validator("keypoints_3d")
+    @classmethod
+    def _kp3d(cls, v: list[list[float]] | None) -> list[list[float]] | None:
+        if v is None:
+            return v
+        if len(v) != NUM_ARM_KEYPOINTS:
+            raise ValueError(f"keypoints_3d must have {NUM_ARM_KEYPOINTS} points, got {len(v)}")
+        for p in v:
+            if len(p) != 3:
+                raise ValueError("each 3D keypoint must be [x, y, z]")
+        return v
+
+    @field_validator("pose33")
+    @classmethod
+    def _pose33(cls, v: list[list[float]] | None) -> list[list[float]] | None:
+        if v is None:
+            return v
+        if len(v) != NUM_POSE33_KEYPOINTS:
+            raise ValueError(f"pose33 must have {NUM_POSE33_KEYPOINTS} points, got {len(v)}")
+        for p in v:
+            if len(p) not in (2, 3):
+                raise ValueError("each pose33 point must be [x, y] or [x, y, conf]")
+        return v
+
+    @field_validator("coco17")
+    @classmethod
+    def _coco17(cls, v: list[list[float]] | None) -> list[list[float]] | None:
+        if v is None:
+            return v
+        if len(v) != NUM_COCO17_KEYPOINTS:
+            raise ValueError(f"coco17 must have {NUM_COCO17_KEYPOINTS} points, got {len(v)}")
+        for p in v:
+            if len(p) not in (2, 3):
+                raise ValueError("each coco17 point must be [x, y] or [x, y, conf]")
+        return v
+
+    def kp2d_array(self) -> np.ndarray:
+        return np.asarray(self.keypoints_2d, dtype=np.float64)
+
+    def kp3d_array(self) -> np.ndarray | None:
+        return (
+            None if self.keypoints_3d is None else np.asarray(self.keypoints_3d, dtype=np.float64)
+        )
+
+    @classmethod
+    def from_arrays(
+        cls,
+        keypoints_2d: np.ndarray,
+        side: HandSide | str = HandSide.UNKNOWN,
+        keypoints_3d: np.ndarray | None = None,
+        **kwargs: Any,
+    ) -> ArmPose:
         return cls(
             side=HandSide(side) if not isinstance(side, HandSide) else side,
             keypoints_2d=np.asarray(keypoints_2d),
@@ -401,6 +498,7 @@ class FrameAnnotation(Ego2DexModel):
     timestamp: float | None = Field(default=None, description="seconds")
     camera: CameraParams | None = None
     hands: list[HandPose] = Field(default_factory=list)
+    arms: list[ArmPose] = Field(default_factory=list)
     detections: list[Detection] = Field(default_factory=list)
     masks: list[Mask] = Field(default_factory=list)
     interactions: list[HandObjectInteraction] = Field(default_factory=list)
